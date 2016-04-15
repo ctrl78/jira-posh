@@ -106,7 +106,6 @@ Function Add-JiraGrouptoProject($project, $role, $json) {
   Return Invoke-JiraRequest POST "project/$(ConvertTo-SafeUri $project)/role/$(ConvertTo-SafeUri $role)" $json
 }
 
-
 Function add-JiraIssue {
 param (
   [Parameter(Mandatory = $true,Position = 0)]
@@ -139,7 +138,6 @@ param (
 
   $jiraissue=Invoke-JiraRequest POST "issue" $json $userAgent
   Return $jiraissue
-
 }
 
 Function Add-JiraComment($issue, $comment) {
@@ -152,6 +150,25 @@ Function Add-JiraComment($issue, $comment) {
  $body = ('{"body": "'+$comment+'"}')
   $jiracomment=Invoke-JiraRequest POST "issue/$(ConvertTo-SafeUri $issue)/comment" $body
   Return $jiracomment.body
+}
+
+Function Add-JiraWatchers {
+param (
+  [Parameter(Mandatory = $true)][String]$issue,
+  [Parameter(Mandatory = $true)][String[]]$jiraWatchers
+)
+  try {
+    foreach ($jiraUser in $jiraWatchers) {
+      $jiraUser = '"'+$jiraUser+'"'
+      $response=Invoke-JiraRequest POST "issue/$(ConvertTo-SafeUri $issue)/watchers" $jiraUser
+      start-sleep -seconds 1
+    }
+    return $response
+  }
+  catch {
+    write-host $_.Exception.Message
+    return $false
+  }
 }
 
 # End Add Functions
@@ -171,4 +188,5 @@ Export-ModuleMember -Function Set-JiraApiBase,
                               Get-JiraSearchResult,
                               Add-JiraIssue,
                               Add-JiraComment,
-                              Start-JiraBackgroundReIndex
+                              Start-JiraBackgroundReIndex,
+                              Add-JiraWatchers
