@@ -173,6 +173,55 @@ param (
 
 # End Add Functions
 
+function Update-JiraTicketStatus {
+<#
+.SYNOPSIS
+.DESCRIPTION
+.PARAMETER <TicketKey>
+ Jira Ticket Key
+.PARAMETER <TicketNewStatus>
+ Jira Ticket Status
+ New Ticket Status should be one of the next available status
+ in the ticket workflow
+.PARAMETER <TransitionID>
+ Jira Ticket Transition ID
+ Transition ID should be contained in the available transition list
+ provided by Invoke-JiraRequest GET "issue/<TICKET-KEY>/transitions
+.EXAMPLE
+ Update-JiraTicketStatus -TicketKey KAN-10062 -TicketNewStatus Close
+.EXAMPLE
+ Update-JiraTicketStatus -TicketKey KAN-10062 -TransitionID 201
+#>
+  param(
+    [Parameter(Mandatory = $True)]
+    [string]$TicketKey,
+    [string]$TicketNewStatus,
+    [string]$TransitionID
+  )
+  
+  if (-not($TicketNewStatus) -and -not($TransitionID)) {
+    return $false
+  }
+  if (-not($TransitionID)) {
+    try {
+      $transition = Invoke-JiraRequest GET "issue/$TicketKey/transitions"
+      $TransitionID = ($transition.transitions | where { $_.name -eq $TicketNewStatus } | select id).id
+    }
+    catch {
+      Write-Host "Error: could not get transition ID. $($_.Exception.Message)"
+      return $false
+    }
+  }
+  try {
+    Invoke-JiraRequest POST "issue/$TicketKey/transitions" "{`"transition`": {`"id`": `"$TransitionID`"}}"
+  }
+  catch {
+    Write-Host "Error: could not update ticket transition. $($_.Exception.Message)"
+    return $false
+  }
+  return $true
+}
+
 Export-ModuleMember -Function Set-JiraApiBase,
                               Set-JiraCredentials,
                               Set-JiraHttpProxy,
@@ -189,4 +238,5 @@ Export-ModuleMember -Function Set-JiraApiBase,
                               Add-JiraIssue,
                               Add-JiraComment,
                               Start-JiraBackgroundReIndex,
-                              Add-JiraWatchers
+                              Add-JiraWatchers,
+                              Update-JiraTicketStatus
