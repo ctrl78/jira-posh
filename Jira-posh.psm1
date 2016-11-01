@@ -176,7 +176,9 @@ param (
 function Update-JiraTicketStatus {
 <#
 .SYNOPSIS
+ Update Jira Ticket Status
 .DESCRIPTION
+ Update Jira Ticket Status using transition ID or name
 .PARAMETER <TicketKey>
  Jira Ticket Key
 .PARAMETER <TicketNewStatus>
