@@ -163,6 +163,9 @@ param (
       $response=Invoke-JiraRequest POST "issue/$(ConvertTo-SafeUri $issue)/watchers" $jiraUser
       start-sleep -seconds 1
     }
+    if ($response -eq '' -or $response -eq $null) {
+      $response = $true
+    }
     return $response
   }
   catch {
@@ -205,6 +208,9 @@ param (
 
       $response=Invoke-JiraRequest POST "issueLink" $json
       start-sleep -seconds 1
+    }
+    if ($response -eq '' -or $response -eq $null) {
+      $response = $true
     }
     return $response
   }
