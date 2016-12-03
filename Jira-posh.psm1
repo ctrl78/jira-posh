@@ -41,7 +41,7 @@ Param(
 Function Invoke-JiraRequest($method, $request, $body, $userAgent='Jira.psm1') {
   ## Fix http://social.technet.microsoft.com/wiki/contents/articles/29863.powershell-rest-api-invoke-restmethod-gotcha.aspx
   $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint(${env:JIRA_API_BASE})
-  $ServicePoint.CloseConnectionGroup("")
+  $ServicePoint.CloseConnectionGroup("") > $null
     If ($env:JIRA_API_BASE -eq $Null) {
       Write-Error "JIRA API Base has not been set, please run ``Set-JiraApiBase'"
   }
@@ -171,6 +171,48 @@ param (
   }
 }
 
+Function Add-JiraIssueLinks {
+<#
+.SYNOPSIS
+ Add Jira ticket links to existing Jira ticket
+.DESCRIPTION
+ Add Jira ticket links to existing Jira ticket
+.PARAMETER <parentIssue>
+ Parent Jira Ticket Key
+.PARAMETER <jiraIssuesToLink>
+ Jira Ticket Key that will be linked to parent ticket
+.PARAMETER <relationType>
+ Type of the relation for the link (Ex: Relates, duplicate)
+.EXAMPLE
+ Add-JiraIssueLinks -parentIssue KAN-9029 -jiraIssuesToLink KAN-9029 -relationType relates
+.EXAMPLE
+ Add-JiraIssueLinks -parentIssue KAN-9029 -jiraIssuesToLink ('KAN-9029','KAN-9028') -relationType relates
+#>
+param (
+  [Parameter(Mandatory = $true)][String]$parentIssue,
+  [Parameter(Mandatory = $true)][String[]]$jiraIssuesToLink,
+  [Parameter(Mandatory = $true)][String]$relationType
+)
+  try {
+    foreach ($jiraIssue in $jiraIssuesToLink) {
+      $fields = New-Object -TypeName PSObject -Property ([ordered]@{
+        "type"=@{name =$relationType;}
+        "inwardIssue"=@{key = $parentIssue;}
+        "outwardIssue"=@{key = $jiraIssue;}
+      })
+
+      $json = $fields | ConvertTo-Json
+
+      $response=Invoke-JiraRequest POST "issueLink" $json
+      start-sleep -seconds 1
+    }
+    return $response
+  }
+  catch {
+    write-host $_.Exception.Message
+    return $false
+  }
+}
 # End Add Functions
 
 function Update-JiraTicketStatus {
@@ -229,7 +271,7 @@ Export-ModuleMember -Function Set-JiraApiBase,
                               Set-JiraHttpProxy,
                               ConvertTo-SafeUri,
                               Invoke-JiraRequest,
-                              Add-JiraGrouptoProject,
+                              Start-JiraBackgroundReIndex,
                               Get-JiraGroup,
                               Get-JiraProjectList,
                               Get-JiraProject,
@@ -237,8 +279,9 @@ Export-ModuleMember -Function Set-JiraApiBase,
                               Get-JiraIssue,
                               Get-JiraHistory,
                               Get-JiraSearchResult,
+                              Add-JiraGrouptoProject,
                               Add-JiraIssue,
                               Add-JiraComment,
-                              Start-JiraBackgroundReIndex,
                               Add-JiraWatchers,
+                              Add-JiraIssueLinks,
                               Update-JiraTicketStatus
